@@ -1,0 +1,4 @@
+from gymnasium.envs.registration import registry
+
+fetch_envs = [env_id for env_id in registry if "Fetch" in env_id]
+print(fetch_envs)

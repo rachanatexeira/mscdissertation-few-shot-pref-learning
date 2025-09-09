@@ -1,0 +1,2 @@
+time/steps,time/epochs,time/steps_per_second,train/env_steps,eval/reward,eval/length,eval/is_success,eval/reward_std,step
+0,0,47183.20696559948,1.0,-16.134370286632144,50.0,0.0,3.7964318080645567,0

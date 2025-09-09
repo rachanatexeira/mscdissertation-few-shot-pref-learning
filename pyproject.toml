@@ -1,0 +1,34 @@
+[project]
+name = "research"
+version = "0.0.1"
+description = "Research experimentation package."
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    { name = "Joey Hejna", email = "jhejna@cs.stanford.edu" },
+]
+license = { file = "LICENSE" }
+
+classifiers = [
+    "Topic :: Research",
+    "Private :: Do Not Upload"
+]
+
+[project.urls]
+homepage = "https://github.com/jhejna/research-lightning"
+repository = "https://github.com/jhejna/research-lightning"
+documentation = "https://github.com/jhejna/research-lightning"
+
+[tool.black]
+line-length = 120
+target-version = ["py36", "py37", "py38"]
+preview = true
+
+[tool.isort]
+profile = "black"
+line_length = 120
+skip = ["__init__.py"]
+filter_files = true
+py_version = "all"
+
+[dependencies]

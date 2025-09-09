@@ -1,0 +1,20 @@
+import torch
+
+# Load both models
+model1 = torch.load("results/fetchreach_run/best_model.pt")
+model2 = torch.load("results/fetchreach_run/final_model.pt")
+
+# Compare keys and values
+def compare_models(m1, m2):
+    if m1.keys() != m2.keys():
+        print("Model keys differ.")
+        return False
+
+    for k in m1:
+        if not torch.equal(m1[k], m2[k]):
+            print(f"Difference found in layer: {k}")
+            return False
+    print("✅ Models are identical.")
+    return True
+
+compare_models(model1, model2)

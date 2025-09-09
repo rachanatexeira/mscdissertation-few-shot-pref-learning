@@ -1,0 +1,117 @@
+import collections
+from typing import Any, Dict
+
+import gym
+import numpy as np
+import torch
+
+from . import utils
+
+MAX_METRICS = {"success", "is_success"}
+LAST_METRICS = {"goal_distance"}
+MEAN_METRICS = {}
+
+
+class EvalMetricTracker(object):
+    """
+    A simple class to make keeping track of eval metrics easy.
+    Usage:
+        Call reset before each episode starts
+        Call step after each environment step
+        call export to get the final metrics
+    """
+
+    def __init__(self):
+        self.metrics = collections.defaultdict(list)
+        self.ep_length = 0
+        self.ep_reward = 0
+        self.ep_metrics = collections.defaultdict(list)
+
+    def reset(self) -> None:
+        if self.ep_length > 0:
+            # Add the episode to overall metrics
+            self.metrics["reward"].append(self.ep_reward)
+            self.metrics["length"].append(self.ep_length)
+            for k, v in self.ep_metrics.items():
+                if k in MAX_METRICS:
+                    self.metrics[k].append(np.max(v))
+                elif k in LAST_METRICS:  # Append the last value
+                    self.metrics[k].append(v[-1])
+                elif k in MEAN_METRICS:
+                    self.metrics[k].append(np.mean(v))
+                else:
+                    self.metrics[k].append(np.sum(v))
+
+            self.ep_length = 0
+            self.ep_reward = 0
+            self.ep_metrics = collections.defaultdict(list)
+
+    def step(self, reward: float, info: Dict) -> None:
+        self.ep_length += 1
+        self.ep_reward += reward
+        for k, v in info.items():
+            if isinstance(v, float) or np.isscalar(v):
+                self.ep_metrics[k].append(v)
+
+    def add(self, k: str, v: Any):
+        self.metrics[k].append(v)
+
+    def export(self) -> Dict:
+        if self.ep_length > 0:
+            # We have one remaining episode to log, make sure to get it.
+            self.reset()
+        metrics = {k: np.mean(v) for k, v in self.metrics.items()}
+        metrics["reward_std"] = np.std(self.metrics["reward"])
+        return metrics
+
+    def get_mean(self, name: str):
+        values = self.metrics.get(name, [])
+        if not values:
+            return 0.0
+        return np.mean(values)
+
+
+def eval_policy(env: gym.Env, model, num_ep: int = 10) -> Dict:
+    metric_tracker = EvalMetricTracker()
+    metrics = {}
+    for _ in range(num_ep):
+        # Reset Metrics
+        done = False
+        ep_length, ep_reward = 0, 0
+        obs = env.reset()
+        metric_tracker.reset()
+
+        # Track per-episode success
+        ep_success = 0.0
+
+
+        while not done:
+            batch = dict(obs=obs)
+            with torch.no_grad():
+                action = model.predict(batch)
+
+            step_result = env.step(action)
+
+            # obs, reward, done, info = env.step(action)
+
+            if len(step_result) == 5:  # Gymnasium (new)
+                obs, reward, terminated, truncated, info = step_result
+                done = terminated or truncated
+            else:  # Old Gym
+                obs, reward, done, info = step_result
+            
+            # ep_reward += reward
+
+            ep_reward += reward
+            metric_tracker.step(reward, info)
+            ep_length += 1
+
+
+
+        print(f"[Episode done] Length: {ep_length}, Total reward: {ep_reward:.3f}, Final success: {info.get('is_success', 'N/A')}")
+
+        metrics["eval/avg_reward"]   = metric_tracker.get_mean("reward")
+        metrics["eval/success_rate"] = metric_tracker.get_mean("success")
+        metrics["eval/avg_distance"] = metric_tracker.get_mean("distance")
+
+    return metric_tracker.export()

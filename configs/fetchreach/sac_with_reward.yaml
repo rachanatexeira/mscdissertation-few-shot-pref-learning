@@ -1,0 +1,61 @@
+alg: SAC
+alg_kwargs:
+  tau: 0.2
+  init_temperature: 0.05
+  critic_freq: 1
+  actor_freq: 1
+  target_freq: 2
+  init_steps: 1000   # reduce for faster fine-tuning
+
+optim: Adam
+optim_kwargs:
+  lr: 0.0003
+
+network: ActorCriticPolicy
+network_kwargs:
+  actor_class: DiagonalGaussianMLPActor
+  actor_kwargs:
+    hidden_layers: [256, 256]
+    log_std_bounds: [-5, 2]
+    ortho_init: true
+  critic_class: ContinuousMLPCritic
+  critic_kwargs:
+    hidden_layers: [256, 256]
+    ensemble_size: 2
+    ortho_init: true
+
+batch_size: 256
+collate_fn: null
+checkpoint: null
+seed: 42
+
+env: CustomFetchReach-v0
+env_kwargs:
+  reward_type: dense
+
+wrapper: null
+wrapper_kwargs: {}
+
+dataset: ReplayBuffer
+dataset_kwargs:
+  distributed: false
+  discount: 0.85
+  nstep: 1
+  capacity: 1000000
+  batch_size: 256
+  save_episodes: true
+  storage_path: results/fetchreach/final_pref_sac
+  cleanup: false
+
+processor: null
+
+train_kwargs:
+  total_steps: 300000
+  log_freq: 1000
+  eval_freq: 5000
+  eval_fn: eval_policy
+  eval_kwargs:
+    num_ep: 20
+  loss_metric: reward
+  workers: 0
+  schedule: {} 

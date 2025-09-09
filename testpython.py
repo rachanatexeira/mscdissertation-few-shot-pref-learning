@@ -1,0 +1,21 @@
+import gymnasium as gym
+import numpy as np
+import gymnasium_robotics
+
+env = gym.make("FetchReach-v3", render_mode="human")
+
+obs, info = env.reset()
+total_reward = 0
+
+for step in range(50):
+    action = env.action_space.sample()  # random policy
+    obs, reward, terminated, truncated, info = env.step(action)
+    total_reward += reward
+
+    env.render()
+
+    if terminated or truncated:
+        break
+
+print("Random policy episode reward:", total_reward)
+env.close()
